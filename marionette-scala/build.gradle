@@ -1,0 +1,17 @@
+project(":marionette-scala") {
+
+    ext {
+       
+    }
+
+    test {
+      
+        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/test/resources")
+        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir.getCanonicalPath()}/src/test/resources/log4j.properties")
+    }
+
+    dependencies {
+       testCompile "com.google.code.findbugs:jsr305:1.3.9"
+       
+    }
+}

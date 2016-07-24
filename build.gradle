@@ -1,0 +1,117 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'com.github.maiflai:gradle-scalatest:0.9'
+        classpath 'net.researchgate:gradle-release:2.3.4'
+        classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
+    }
+}
+
+allprojects {
+    group = 'com.marionette'
+    version =  version
+    description = "scala"
+    apply plugin: 'java'
+    apply plugin: 'scala'
+    apply plugin: 'maven'
+    apply plugin: 'com.github.maiflai.scalatest'
+    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'net.researchgate.release'
+    apply plugin: 'scalaStyle'
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    ext {
+        scalaMajorVersion = '2.11'
+        scala = '2.11.7'
+        scalaCheck = '1.11.1'
+        scalaTest = '2.2.6'
+        junit = '4.11'
+        scalaLoggingVersion = '2.1.2'
+        kafkaVersion = '0.9.0.1'
+        mockitoVersion = '1.10.19'
+    }
+
+    repositories {
+        //mavenLocal()
+        mavenCentral()
+        maven { url "http://conjars.org/repo" }
+    }
+
+    dependencies {
+        compile "org.scala-lang:scala-library:$scala"
+        compile "org.scala-lang:scala-compiler:$scala"
+        compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
+
+        testCompile "org.mockito:mockito-all:$mockitoVersion"
+        testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
+        testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
+        testCompile "junit:junit:$junit"
+        testCompile "org.apache.curator:curator-test:3.1.0"
+        testRuntime 'org.pegdown:pegdown:1.1.0'
+    }
+
+
+    test {
+        maxParallelForks = 1
+        minHeapSize '256m'
+        maxHeapSize '2048m'
+    }
+
+    task testJar(type: Jar, dependsOn: testClasses) {
+        baseName = "test-${project.archivesBaseName}"
+        from sourceSets.test.output
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+
+    task scaladocJar(type: Jar) {
+        classifier = 'scaladoc'
+        from '../LICENSE'
+        from scaladoc
+    }
+
+    tasks.withType(Tar) {
+        compression Compression.GZIP
+        extension = 'tgz'
+    }
+
+    shadowJar {
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
+            resource = 'reference.conf'
+        }
+        version = "$project.version"
+        zip64 true
+    }
+
+    jar {
+        version =  "$project.version"
+    }
+
+    task compile(dependsOn: 'compileScala')
+    task fatJar(dependsOn : ['test', 'shadowJar'])
+    task fatJarNoTest(dependsOn : 'shadowJar')
+
+    scalaStyle {
+        configLocation = "${project.projectDir}/../style/scalastyle_config.xml"
+        includeTestSourceDirectory = false
+        source = "src/main/scala"
+        testSource = "src/test/scala"
+    }
+}
